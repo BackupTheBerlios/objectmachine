@@ -67,11 +67,10 @@ class WorldTest extends haxe.unit.TestCase
 
     public function testPutMessage()
     {
-        // This test sends a message to the world named 'world'
-        // which, in this case, is itself.
+        // This test sends a message to the world.
         // This is the same function the world uses to send messages
         // to the components it is running (the world is a component).
-        // Once it receives it, it will execute it as a script.
+        // Once it receives it, it will execute the content as a script.
         // Since no words come after the last text in the script
         // it will be left on the stack where we can check for it.
        
@@ -81,36 +80,71 @@ class WorldTest extends haxe.unit.TestCase
         world.execute( "world name");
         
         // Send it a message
-        var msg : String;
-        msg  = " me sender";
-        msg += " world receiver";
-        msg += " message";
-        msg += " text hello there ###";
+        var msgText : String;
+        msgText  = " me sender";
+        msgText += " world receiver";
+        msgText += " message";
+        msgText += ' " hello there "';
+        var msg : Message = new Message();
+        msg.execute(msgText);
         world.putMessage(msg);
         
         world.run(1);
         
         this.assertEquals( "hello there", world.pop());
     }
-    
+
     public function testMessageSend()
     {
         // This test creates two components, one sender and one receiver.
         // The sender tries to send a message to the receiver containing
-        // the text 'hello'. When the receiver receives the message, it
-        // will send a message to the world containing the text received.
-        // We can then check that the text shows up on the world stack.
-        //
-        // We tell the world to just run once through the components.
+        // the text 'hello'.
+        // We test the result by asking the world to give us the receiving
+        // component and then we can ask it directly what it got.
         
         var world : World = new World();
         
         world.execute( "world name");
+        
+        world.execute( "testsender TestSender create");
+        world.execute( "testreceiver TestReceiver create");
+        
+        // Ask the sender to run test1
+        var msgText : String;
+        msgText  = " testsender receiver";
+        msgText += " message";
+        msgText += " test1";
+        var msg : Message = new Message();
+        msg.execute(msgText);
+        world.putMessage(msg);
+
+        world.run(1);
+
+        this.assertEquals( "hello" , world.getComponent("testreceiver").pop());
+    }
+    
+    /*
+    public function testMessageConfirmation()
+    {
+        // Test if the message confirmation reaches the sender
+        
+        var world : World = new World();
+
+        world.execute( "world name");
+        
         world.execute( "testsender TestSender create");
         world.execute( "testreceiver TestReceiver create");
 
+        // Ask the sender to run test2
+        var msg;
+        msg  = " testsender receiver";
+        msg += " message";
+        msg += " test2";
+        world.putMessage(msg);
+        
         world.run(1);
         
         this.assertEquals( "hello" , world.pop());
     }
+    */
 }

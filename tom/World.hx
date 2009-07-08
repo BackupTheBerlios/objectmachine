@@ -1,5 +1,5 @@
 
-/*
+/**
 
 Copyright 2009 The Object Machine Project. All rights reserved.
 
@@ -47,19 +47,23 @@ class World extends Object, implements Runnable
         
         this.words.set( "create", Reflect.field(this, "create"));
         this.words.set( "exists", Reflect.field(this, "exists"));
-        this.words.set( "sender", Reflect.field(this, "sender"));
-        this.words.set( "receiver", Reflect.field(this, "receiver"));
     }
     
     public function run(steps : Int)
     {
+        this.deliverWorldMessages();
+
         var component : Dynamic;
         for (component in this.components)
         {
             component.run(1);
             this.deliverMessages(component);
         }
-        this.readOwnMessages();
+    }
+    
+    public function getComponent(name : String) : Dynamic
+    {
+        return this.components.get(name);
     }
     
     
@@ -71,57 +75,48 @@ class World extends Object, implements Runnable
         this.components.set(name, component);
     }
     
+    private function deliverWorldMessages()
+    {
+        // Deliver at most 10 messages at a time
+        var i : Int;
+        for (i in 0...10)
+        {
+            if (!this.deliverMessage(this, this.receiveMessage())) break;
+        }
+    }
+
     private function deliverMessages(component : Dynamic)
     {
         // Deliver at most 10 messages at a time
         var i : Int;
         for (i in 0...10)
         {
-            if (!this.deliverOneMessage(component)) break;
+            if (!this.deliverMessage(component, component.getMessage())) break;
         }
     }
     
-    private function deliverOneMessage(component : Dynamic) : Bool
+    private function deliverMessage(component : Dynamic, message : Message) : Bool
     {
-        var message = component.getMessage();
         if (null == message)    return false;
-        this.execute(message);
+        
         var receivingComponent : Dynamic;
-        if (this.theReceiver == this.myName)    // The message is to the world
+        var receiverName = message.getReceiver();
+        if (receiverName == this.myName)
         {
-            receivingComponent = this;
+            this.execute(message.body);    // The message is to the world - execute it
         }
         else
         {
-            receivingComponent = this.components.get(this.theReceiver);
+            receivingComponent = this.components.get(receiverName);
+            if (null != receivingComponent)
+            {
+                receivingComponent.putMessage(message);
+            }
         }
-        if (null != receivingComponent)
-        {
-            message = this.extractMessage(message);
-            // Reconstruct the message header
-            message = this.theSender + " sender " + this.theReceiver + " receiver message " + message;
-            receivingComponent.putMessage(message);
-        }
+        
         return true;
     }
     
-    private function readOwnMessages()
-    {
-        // Read at most 10 messages at a time
-        var i : Int;
-        for (i in 0...10)
-        {
-            var message = this.receiveMessage();
-            if (null == message)    break;
-            this.execute(message);
-            if (this.theReceiver == this.myName)
-            {
-                message = this.extractMessage(message);
-                this.execute(message);
-            }
-        }
-    }
-
     // Words
     
     private function create()
@@ -150,19 +145,5 @@ class World extends Object, implements Runnable
         }
     }
     
-    private function sender()
-    {
-        this.theSender = this.stack.pop();
-    }
-    
-    private function receiver()
-    {
-        this.theReceiver = this.stack.pop();
-    }
-    
-    
     private var components : Hash<Runnable>;
-    
-    private var theSender : String;
-    private var theReceiver : String;
 }

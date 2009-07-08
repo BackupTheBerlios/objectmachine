@@ -31,43 +31,77 @@ expressed or implied, of The Object Machine Project.
 
 /*
 
-The TestSender class is only used to test the message passing functionality of the world.
+The Message class parses messages and keeps track of its sender and receiver(s).
+A message never runs in a world.
 
 */
 
 package tom;
 
-class TestSender extends Object, implements Runnable
+class Message extends Object
 {
     public function new()
     {
         super();
         
-        this.words.set( "test1", Reflect.field(this, "test1"));
+        this.senders = new List<String>();
+        this.receivers = new List<String>();
+        
+        this.words.set( "sender", Reflect.field(this, "sender"));
+        this.words.set( "receiver", Reflect.field(this, "receiver"));
     }
-    
-    public function run(steps : Int)
+
+    public override function execute(text : String)
     {
-        var message = this.receiveMessage();
-        if (null != message)    this.execute(message.body);
+        // If the text is like this 'aaa aaa message bbb bbb message cc cc',
+        // I want two halves: 'aaa aaa' and 'bbb bbb message cc cc', the first 'message' substring
+        // being the splitter, and then only execute the first half. I do this to minimize
+        // the execution time and to avoid side-effects from the message body.
+        
+        var messageStart = text.indexOf( "message");
+        if (-1 != messageStart)
+        {
+            super.execute(text.substr(0, messageStart));
+            this.body = text.substr(messageStart + 8);
+        }
+    }
+
+    public var body(getBody, null) : String;
+    
+    public function getSender() : String
+    {
+        return this.senders.first();
+    }
+
+    public function getReceiver() : String
+    {
+        return this.receivers.first();
     }
     
+    public function isTo(name : String) : Bool
+    {
+        return this.receivers.first() == name;
+    }
     
     // Private
     
+    private var senders : List<String>;
+    private var receivers : List<String>;
+    
+    private function getBody()
+    {
+        return this.body;
+    }
+    
     // Words
     
-    private function test1()
+    private function sender()
     {
-        // Send a message to a component called 'testreceiver'
-        // containing the single word 'hello'.
-        var msgText : String;
-        msgText  = " testsender sender";
-        msgText += " testreceiver receiver";
-        msgText += " message";
-        msgText += " hello";
-        var message = new Message();
-        message.execute(msgText);
-        this.sendMessage(message);
+        this.senders.add(this.stack.pop());
+    }
+
+    private function receiver()
+    {
+        this.receivers.add(this.stack.pop());
     }
 }

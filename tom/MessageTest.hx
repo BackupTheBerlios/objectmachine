@@ -31,27 +31,37 @@ expressed or implied, of The Object Machine Project.
 
 /*
 
-The TestReceiver class is only used to test the message passing functionality of the world.
+Unit tests for the tom.Message class.
 
 */
 
 package tom;
 
-class TestReceiver extends Object, implements Runnable
+class MessageTest extends haxe.unit.TestCase
 {
-    public function new()
+    public function testSplit()
     {
-        super();
+        // The word 'message' should split the message in two,
+        // into a header and a body. The header is executed
+        // while the body is not.
+        
+        var message : Message = new Message();
+        
+        message.execute( "thesender sender thereceiver receiver message 3 4");
+        
+        this.assertEquals("thesender", message.getSender());
+        this.assertEquals("thereceiver", message.getReceiver());
+        this.assertEquals(null, message.pop());
     }
 
-    public function run(steps : Int)
+    public function testMultipleSendersReceivers()
     {
-        var message = this.receiveMessage();
-        if (null != message)    this.execute(message.body);
+        var message : Message = new Message();
+        
+        message.execute( "sender1 sender sender2 sender receiver1 receiver receiver2 receiver message 3 4");
+        
+        this.assertEquals("sender1", message.getSender());
+        this.assertEquals("receiver1", message.getReceiver());
+        this.assertEquals(null, message.pop());
     }
-    
-    
-    // Private
-    
-    // Words
 }

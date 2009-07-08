@@ -51,35 +51,36 @@ class Object
     {
         this.myName = "";
         
-        this.receivedMessages = new List<String>();
-        this.sentMessages = new List<String>();
+        this.receivedMessages = new List<Message>();
+        this.sentMessages = new List<Message>();
         this.stack = new List<Dynamic>();
         this.words = new Hash<Dynamic>();
         
-        this.words.set( "text", Reflect.field(this, "text"));
+        this.words.set( '"', Reflect.field(this, "text"));
         this.words.set( "name", Reflect.field(this, "name"));
         this.words.set( "getname", Reflect.field(this, "getName"));
-        
-        // Special test words
-        this.words.set( "testExtractMessage", Reflect.field(this, "testExtractMessage"));
     }
     
     public function execute(script : String) : Void
     {
-        // A script consists of commands called 'words' which are separated
-        // by whitespace (space, tab, newline). If a word is recognized it is
-        // executed, otherwise it is pushed on the stack in the form of a string.
-        // Each class inheriting from Object can extend the scripting capability
-        // by adding words to this.words (see the constructor above). The parser
-        // will then recognize this new word when a script is executed and call
-        // the new method added by the child class.
+        /*
+        A script consists of commands called 'words' which are separated
+        by whitespace (space, tab, newline). If a word is recognized it is
+        executed, otherwise it is pushed on the stack in the form of a string.
+        Each class inheriting from Object can extend the scripting capability
+        by adding words to this.words (see the constructor above). The parser
+        will then recognize this new word when a script is executed and call
+        the new method added by the child class.
         
-        // Maybe it's more efficient to do this one word at a time from the
-        // script text (instead of splitting it all up at once) if there are a lot
-        // of text strings (which there probably will be).
-        // The 'text' command will then have to remove the text string from the script,
-        // otherwise the parser will get confused.
-        // Anyway, this is the simplest thing to do right now.
+        Maybe it's more efficient to do this one word at a time from the
+        script text (instead of splitting it all up at once) if there are a lot
+        of text strings (which there probably will be).
+        The '"' command will then have to remove the text string from the script,
+        otherwise the parser will get confused.
+        
+        Anyway, this is the simplest thing to do right now.
+        */
+        
         this.scriptWords = script.split( " ");
         
         var wordCount = this.scriptWords.length;
@@ -87,20 +88,19 @@ class Object
         while (this.currentWordIndex < wordCount)
         {
             var word = this.scriptWords[this.currentWordIndex++];
-            if ( "message" == word) break;
             var method = this.words.get(word);
-            if (null == method)
-            {
-                // Word not found. Add it to the stack if it is not a space
-                if ( " " != word)
-                {
-                    this.stack.push(word);
-                }
-            }
-            else
+            if (null != method)
             {
                 // Execute the method associated with the word
                 Reflect.callMethod(this, method, []);
+            }
+            else
+            {
+                // Word not found. Add it to the stack if it is not empty
+                if (StringTools.trim(word) != "")
+                {
+                    this.stack.push(word);
+                }
             }
         }
     }
@@ -111,44 +111,31 @@ class Object
     }
 
     // Used by the world the deliver messages to the component
-    public function putMessage(message : String)
+    public function putMessage(message : Message)
     {
         this.receivedMessages.add(message);
     }
     
     // Used by the world the deliver messages from the component
-    public function getMessage() : String
+    public function getMessage() : Message
     {
         return this.sentMessages.pop();
     }
     
     
+    // Private
+    
     // Used by the component to receive messages
-    private function receiveMessage() : String
+    private function receiveMessage() : Message
     {
         return this.receivedMessages.pop();
     }
     
     // Used by the component to send messages
-    private function sendMessage(message : String)
+    private function sendMessage(message : Message)
     {
         this.sentMessages.add(message);
     }
-    
-    private function extractMessage(text : String) : String
-    {
-        // If the text is like this 'aaa aaa message bbb bbb message cc cc',
-        // I need to return 'bbb bbb message cc cc', the first 'message' substring
-        // being the keyword here.
-        
-        var messageStart = text.indexOf( "message");
-        if (-1 != messageStart)
-        {
-            text = text.substr(messageStart + 8);
-        }
-        return text;
-    }
-    
     
     // Words
     
@@ -158,10 +145,10 @@ class Object
         while (true)
         {
             string += this.scriptWords[this.currentWordIndex];
-            if ( "###" == this.scriptWords[++this.currentWordIndex])   break;
+            if ( '"' == this.scriptWords[++this.currentWordIndex])   break;
             string += " ";
         }
-        this.currentWordIndex++;    // Skip the ### at the end
+        this.currentWordIndex++;    // Skip the " at the end
         this.stack.push(string);
     }
     
@@ -175,12 +162,6 @@ class Object
         this.stack.push(this.myName);
     }
     
-    private function testExtractMessage()
-    {
-        var text = this.stack.pop();
-        this.stack.push(this.extractMessage(text));
-    }
-    
     // Instance variables
     
     private var myName : String;
@@ -191,6 +172,6 @@ class Object
     
     private var stack : List<Dynamic>;
     
-    private var receivedMessages : List<String>;
-    private var sentMessages : List<String>;
+    private var receivedMessages : List<Message>;
+    private var sentMessages : List<Message>;
 }

@@ -47,6 +47,7 @@ class Tester
         
         runner.add(new tom.ObjectTest());
         runner.add(new tom.WorldTest());
+        runner.add(new tom.MessageTest());
         
         runner.run();
     }

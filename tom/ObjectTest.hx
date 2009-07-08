@@ -1,5 +1,5 @@
 
-/*
+/**
 
 Copyright 2009 The Object Machine Project. All rights reserved.
 
@@ -39,12 +39,12 @@ package tom;
 
 class ObjectTest extends haxe.unit.TestCase
 {
-    // Test the 'text' script command which starts a text string.
-    // ### ends the string.
+    // Test the " script command which starts a text string.
+    // " ends the string.
     //
     // Examples:
-    //  'text This is some text ###' represents the string "This is some text"
-    //  'text  This is some text  ###' represents the string " This is some text "
+    //  '" This is some text "' represents the string "This is some text"
+    //  '"  This is some text  "' represents the string " This is some text "
     //  (note the two spaces at the beginning and the end of the text)
     
     public function testString1()
@@ -52,7 +52,7 @@ class ObjectTest extends haxe.unit.TestCase
         var object : Object = new Object();
         
         var string = "This is some text";
-        object.execute( "text " + string + " ###");
+        object.execute( '" ' + string + ' "');
         var res = object.pop();
         
         this.assertEquals(string, res);
@@ -63,7 +63,7 @@ class ObjectTest extends haxe.unit.TestCase
         var object : Object = new Object();
 
         var string = " This is some text ";
-        object.execute( "text " + string + " ###");
+        object.execute( '" ' + string + ' "');
         var res = object.pop();
         
         this.assertEquals(string, res);
@@ -73,8 +73,8 @@ class ObjectTest extends haxe.unit.TestCase
     {
         var object : Object = new Object();
 
-        var string = " This is some text " + '"' + "with quotes" + '"';
-        object.execute( "text " + string + " ###");
+        var string = 'This is some text "with quotes"';
+        object.execute( '" ' + string + ' "');
         var res = object.pop();
         
         this.assertEquals(string, res);
@@ -93,20 +93,6 @@ class ObjectTest extends haxe.unit.TestCase
         this.assertEquals( "abc", object.pop());
     }
     
-    public function testMessageBreak()
-    {
-        // The word 'message' should halt the interpretation of the script.
-        // This is done to be more efficient in delivering messages and
-        // to prevent side-effects from words in the message itself.
-        
-        var object : Object = new Object();
-        
-        object.execute( "1 2 message 3 4");
-        
-        this.assertEquals("2", object.pop());
-        this.assertEquals("1", object.pop());
-    }
-    
     public function testName()
     {
         // Each object can have a name set by a ascript.
@@ -118,21 +104,4 @@ class ObjectTest extends haxe.unit.TestCase
         
         this.assertEquals( "abcd", object.pop());
     }
-    
-    public function testExtractMessage()
-    {
-        // This is not used directly in scripts but I need to be able to
-        // test the message extraction function somehow.
-        // Given a message like this 'aaa aaa message bbb bbb message cc cc'
-        // I should receive 'bbb bbb message cc cc'.
-        // The special word testExtractMessage will return the extracted
-        // message as a string on the object stack.
-        
-        var object : Object = new Object();
-        
-        object.execute( "text aaa aaa message bbb bbb message cc cc ### testExtractMessage");
-        
-        this.assertEquals( "bbb bbb message cc cc", object.pop());
-    }
-    
 }
