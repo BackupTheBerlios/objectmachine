@@ -34,58 +34,77 @@
   documentation are those of the authors and should not be
   interpreted as representing official policies, either expressed
   or implied, of The Object Machine Project.
-  
+
 */
 
 /*
 
-  Unit tests for the tom.Message class.
+  This class is used by the flash client to connect to a remote
+  world. It inherits from Connection which does most of the work.
 
 */
 
 package tom;
 
-class MessageTest extends haxe.unit.TestCase
-{
-   public function testSplit()
+class FlashConnection extends Connection
+{   
+   public function new(debug : Bool)
    {
-      // The word 'message' should split the message in two, into
-      // a header and a body. The header is executed while the
-      // body is not. 
-        
-      var message : Message = new Message();
-
-      var txt = "thesender sender " +
-         "thereceiver receiver " +
-         "message " +
-         "3 4";
-      message.execute(txt);
-        
-      this.assertEquals("thesender", message.getSender());
-      this.assertEquals("thereceiver", message.getReceiver());
-      this.assertEquals(null, message.pop());
+      super(debug);
    }
 
-   public function testMultipleSendersReceivers()
+   public function setSocket(socket : flash.net.Socket)
    {
-      /*
-        This is not fully implemented. Only the first sender or
-        receiver will be returned. This test at least confirms
-        that.
-      */
-      
-      var message : Message = new Message();
+      this.socket = socket;
+   }
 
-      var txt = "sender1 sender " +
-         "sender2 sender " +
-         "receiver1 receiver " +
-         "receiver2 receiver " +
-         "message " +
-         "3 4";
-      message.execute(txt);
-        
-      this.assertEquals("sender1", message.getSender());
-      this.assertEquals("receiver1", message.getReceiver());
-      this.assertEquals(null, message.pop());
+   public override function connect(host : String, port : Int)
+   {
+      try
+      {
+         this.socket.connect(host, port);
+      }
+      catch (e : Dynamic)
+      {         
+         if (!this.blocking(e)) trace(e);
+      }
+   }
+
+   public override function close()
+   {
+      this.socket.close();
+   }
+
+   
+   private var socket : flash.net.Socket;
+
+   private override function writeByte(byte : Int)
+   {
+      this.socket.writeByte(byte);
+   }
+
+   private override function writeChar(string : String)
+   {
+      this.socket.writeByte(string.charCodeAt(0));
+   }
+
+   private override function flush()
+   {
+      this.socket.flush();
+   }
+
+   private override function dataAvailable() : Bool
+   {
+      return (this.socket.bytesAvailable > 0);
+   }
+   
+   private override function readByte() : Int
+   {
+      return this.socket.readByte();
+   }
+
+   private override function readChar() : String
+   {
+      return String.fromCharCode(this.socket.readByte());
    }
 }

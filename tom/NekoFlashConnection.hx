@@ -34,58 +34,82 @@
   documentation are those of the authors and should not be
   interpreted as representing official policies, either expressed
   or implied, of The Object Machine Project.
-  
+
 */
 
 /*
 
-  Unit tests for the tom.Message class.
+  This class is used by the worlds run by neko to connect to a
+  remote worlds run by flash clients. To connect to worlds run on
+  servers, use the class NekoConnection.
+  Inherits from Connection which does most of the work.
 
 */
 
 package tom;
 
-class MessageTest extends haxe.unit.TestCase
+class NekoFlashConnection extends NekoConnection
 {
-   public function testSplit()
+   public static var RECEIVINGREQUEST = 1;
+   public static var SENDINGPOLICY = 2;
+   public static var CLOSING = 3;
+   
+   public function new(socket : neko.net.Socket)
    {
-      // The word 'message' should split the message in two, into
-      // a header and a body. The header is executed while the
-      // body is not. 
-        
-      var message : Message = new Message();
-
-      var txt = "thesender sender " +
-         "thereceiver receiver " +
-         "message " +
-         "3 4";
-      message.execute(txt);
-        
-      this.assertEquals("thesender", message.getSender());
-      this.assertEquals("thereceiver", message.getReceiver());
-      this.assertEquals(null, message.pop());
+      super(socket);
+      
+      this.initState = NekoFlashConnection.RECEIVINGREQUEST;
+      this.policyFile = '<cross-domain-policy>' +
+         '<allow-access-from domain="lap-jens" to-ports="*" />' +
+         '</cross-domain-policy>';
    }
 
-   public function testMultipleSendersReceivers()
+   public override function receive()
    {
-      /*
-        This is not fully implemented. Only the first sender or
-        receiver will be returned. This test at least confirms
-        that.
-      */
+      super.receive();
       
-      var message : Message = new Message();
+      switch (this.initState)
+      {
+      case Connection.RECEIVINGREQUEST:
+         this.receivePolicyRequest();
+      }
+   }
 
-      var txt = "sender1 sender " +
-         "sender2 sender " +
-         "receiver1 receiver " +
-         "receiver2 receiver " +
-         "message " +
-         "3 4";
-      message.execute(txt);
-        
-      this.assertEquals("sender1", message.getSender());
-      this.assertEquals("receiver1", message.getReceiver());
-      this.assertEquals(null, message.pop());
+   public override function send()
+   {
+      super.send();
+
+      switch (this.initState)
+      {
+      case Connection.SENDINGPOLICY:
+         this.sendPolicyFile();
+      }
+   }
+   
+
+   private var initState : Int;
+   private var policyFile : String;
+
+   private function receivePolicyRequest()
+   {
+      if (this.textReceived)
+      {
+         var text = this.getText();
+         //trace("received " + text);
+         if ("<policy-file-request/>" == text)
+         {
+            this.setText(this.policyFile);
+            this.initState = NekoFlashConnection.SENDINGPOLICY;
+         }
+      }
+   }
+
+   private function sendPolicyFile()
+   {
+      if (this.textSent)
+      {
+         this.initState = Connection.CLOSING;
+         this.closing = true;
+      }
    }
 }

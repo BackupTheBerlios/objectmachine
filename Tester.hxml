@@ -1,2 +1,14 @@
 -main Tester
 -neko tester.n
+
+--next
+
+-main Server
+-neko server.n
+
+--next
+
+-main Tester
+-swf tester.swf
+-swf-version 10
+-swf-header 600:600:30
